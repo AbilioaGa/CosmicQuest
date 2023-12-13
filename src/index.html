@@ -26,7 +26,7 @@
     </script>
   </head>
   <body
-    class="flex flex-col font-[Exo] font-semibold h-full w-full mt-safe-top select-none bg-[#CFD2CF] dark:bg-[#1b2735] antialiased"
+    class="flex flex-col font-[Exo] font-semibold h-full w-full select-none bg-[#CFD2CF] dark:bg-[#1b2735] antialiased"
   >
     <header>
       <nav class="bg-[#EEEEEE] border-gray-200 dark:bg-[#1a1a1a]">
@@ -122,16 +122,14 @@
       </nav>
     </header>
 
-    <div class="flex-1 stars-container">
+    <div class="stars-container">
       <div id="stars"></div>
       <div id="stars2"></div>
       <div id="stars3"></div>
 
-      <div class="flex-shrink-0 h-[7vh] m-0">
+      <div class="h-20 sm:h-16 m-0">
         <section id="alert-container" class="">
-          <div>
-            <slot></slot>
-          </div>
+          <div></div>
         </section>
       </div>
 
@@ -139,7 +137,7 @@
         <section id="game"></section>
       </main>
 
-      <section class="flex justify-center my-2 w-full min-h-fit">
+      <section class="flex justify-center mt-10 sm:mt-16">
         <div class="grid grid-cols-10 grid-rows-3 gap-1 sm:gap-2">
           <button
             type="button"
