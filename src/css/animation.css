@@ -1,25 +1,15 @@
-.stars-container {
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.stars-container #stars,
-.stars-container #stars2,
-.stars-container #stars3 {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-#stars, #stars2, #stars3 {
+#stars,
+#stars2,
+#stars3 {
   width: 1px;
   height: 1px;
   background: transparent;
   animation: animStar 50s linear infinite;
 }
 
-#stars:after, #stars2:after, #stars3:after {
+#stars:after,
+#stars2:after,
+#stars3:after {
   content: " ";
   position: absolute;
   top: 2000px;
@@ -430,7 +420,6 @@
     1678px 1613px #fff, 1740px 1637px #fff, 49px 938px #fff, 1442px 810px #fff, 1593px 570px #fff, 1084px 1552px #fff,
     66px 1581px #fff, 790px 1729px #fff, 1323px 926px #fff, 1820px 992px #fff, 967px 742px #fff;
 }
-
 
 @keyframes animStar {
   from {
