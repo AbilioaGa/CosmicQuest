@@ -1,6 +1,6 @@
 import { dictionary } from "./dicio.js";
 
-class CosmicQuest {
+class CosmicGame {
   #numRows;
   #numCols;
   #secretWord;
@@ -13,49 +13,49 @@ class CosmicQuest {
   constructor(numRows, numCols) {
     this.#numRows = numRows;
     this.#numCols = numCols;
-    this.#secretWord = this._getRandomWord();
-    this.#grid = this._initializeGrid();
+    this.#secretWord = this.getRandomWord();
+    this.#grid = this.initializeGrid();
     this.#currentRow = 0;
     this.#currentCol = 0;
 
-    this._setupUI();
-    this._registerKeyboardEvents();
-    this._setupLetterButtons();
+    this.setupUI();
+    this.registerKeyboardEvents();
+    this.setupLetterButtons();
   }
 
   // Método para obter uma palavra aleatória do dicionário.
-  _getRandomWord() {
+  getRandomWord() {
     return dictionary[Math.floor(Math.random() * dictionary.length)];
   }
 
   // Método para inicializar a matriz do jogo com arrays vazios.
-  _initializeGrid() {
+  initializeGrid() {
     return Array.from({ length: this.#numRows }, () => Array(this.#numCols).fill(""));
   }
 
+  // Método auxiliar para criar elementos HTML.
+  createHTMLElement(tag, classNames = []) {
+    const element = document.createElement(tag);
+    element.className = classNames.join(" ");
+    return element;
+  }
+
   // Configuração inicial da interface do usuário, criação de elementos HTML para representar o jogo.
-  _setupUI() {
+  setupUI() {
     const gameContainer = document.getElementById("game");
     if (!gameContainer) {
       console.error("Elemento HTML 'game' não encontrado.");
       return;
     }
 
-    this.#gridContainer = this._createHTMLElement("div", ["flex", "justify-center", "my-2"]);
+    this.#gridContainer = this.createHTMLElement("div", ["flex", "justify-center", "my-2"]);
     gameContainer.appendChild(this.#gridContainer);
-    this._drawGrid(); // Método para desenhar a grade na interface do usuário.
-  }
-
-  // Método auxiliar para criar elementos HTML.
-  _createHTMLElement(tag, classNames = []) {
-    const element = document.createElement(tag);
-    element.className = classNames.join(" ");
-    return element;
+    this.drawGrid(); // Método para desenhar a grade na interface do usuário.
   }
 
   // Método para desenhar a grade na interface do usuário.
-  _drawGrid() {
-    this.#gridElement = this._createHTMLElement("div", [
+  drawGrid() {
+    this.#gridElement = this.createHTMLElement("div", [
       "grid",
       `grid-cols-${this.#numCols}`,
       `grid-rows-${this.#numRows}`,
@@ -66,7 +66,7 @@ class CosmicQuest {
     // Itera sobre as linhas e colunas da grade, desenhando cada caixa.
     for (let rows = 0; rows < this.#numRows; rows++) {
       for (let cols = 0; cols < this.#numCols; cols++) {
-        this._drawBox(rows, cols); // Método para desenhar uma caixa na grade.
+        this.drawBox(rows, cols); // Método para desenhar uma caixa na grade.
       }
     }
 
@@ -75,9 +75,9 @@ class CosmicQuest {
   }
 
   // Método para desenhar uma caixa na grade.
-  _drawBox(row, col, letter = "") {
+  drawBox(row, col, letter = "") {
     // Cria um elemento HTML para representar uma caixa.
-    const box = this._createHTMLElement("div", [
+    const box = this.createHTMLElement("div", [
       "w-14",
       "h-14",
       "border-2",
@@ -97,7 +97,7 @@ class CosmicQuest {
   }
 
   // Método para atualizar a grade na interface do usuário com as letras inseridas pelo jogador.
-  _updateGrid() {
+  updateGrid() {
     // Itera sobre a matriz this.#grid e atualiza cada caixa na grade.
     for (let row = 0; row < this.#grid.length; row++) {
       for (let col = 0; col < this.#grid[row].length; col++) {
@@ -110,25 +110,25 @@ class CosmicQuest {
   }
 
   // Método para registrar eventos de teclado.
-  _registerKeyboardEvents() {
+  registerKeyboardEvents() {
     // Adiciona um ouvinte de eventos de teclado ao corpo do documento.
     document.body.addEventListener("keydown", (e) => {
       const key = e.key;
       // Chama métodos correspondentes com base na tecla pressionada.
       if (key === "Enter") {
-        this._processEnterKey();
+        this.processEnterKey();
       } else if (key === "Backspace") {
-        this._removeLetter();
-      } else if (this._isLetter(key)) {
-        this._addLetter(key);
+        this.removeLetter();
+      } else if (this.isLetter(key)) {
+        this.addLetter(key);
       }
 
-      this._updateGrid(); // Atualiza a grade na interface do usuário.
+      this.updateGrid(); // Atualiza a grade na interface do usuário.
     });
   }
 
   // Configura os eventos de clique nos botões de letra.
-  _setupLetterButtons() {
+  setupLetterButtons() {
     const letterButtons = document.querySelectorAll(".letter-button");
 
     letterButtons.forEach((button) => {
@@ -136,25 +136,25 @@ class CosmicQuest {
         const clickedButton = event.target;
         const letter = clickedButton.dataset.key;
         if (letter === "Enter") {
-          this._processEnterKey();
+          this.processEnterKey();
         } else if (letter === "Backspace") {
-          this._removeLetter();
+          this.removeLetter();
         } else {
-          this._addLetter(letter);
+          this.addLetter(letter);
         }
 
-        this._updateGrid(); // Atualiza a grade na interface do usuário.
+        this.updateGrid(); // Atualiza a grade na interface do usuário.
       });
     });
   }
 
   // Método chamado quando a tecla Enter é pressionada.
-  _processEnterKey() {
+  processEnterKey() {
     // Verifica se a última coluna da linha atual foi atingida.
     if (this.#currentCol === this.#numCols) {
-      const guessedWord = this._getCurrentWord().toLowerCase();
-      if (this._isWordValid(guessedWord)) {
-        this._revealWord(guessedWord);
+      const guessedWord = this.getCurrentWord().toLowerCase();
+      if (this.isWordValid(guessedWord)) {
+        this.revealWord(guessedWord);
         this.#currentRow++;
         this.#currentCol = 0;
       } else {
@@ -168,18 +168,18 @@ class CosmicQuest {
             }, 500); // Remova a classe de shake após a duração da animação (0.5s).
           }
         }
-        this._showAlert("Sua tentativa está flutuando longe da resposta certa no cosmos.", "yellow");
+        this.showAlert("Minha busca por essa palavra está perdida nas vastidões do espaço.", "yellow");
       }
     }
   }
 
   // Método para obter a palavra atual digitada pelo jogador.
-  _getCurrentWord() {
+  getCurrentWord() {
     return this.#grid[this.#currentRow].join("");
   }
 
   // Método para remover acentos de uma palavra.
-  _removeAccents(word) {
+  removeAccents(word) {
     return word
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -187,13 +187,13 @@ class CosmicQuest {
   }
 
   // Método para verificar se uma palavra é válida.
-  _isWordValid(word) {
-    const wordWithoutAccents = this._removeAccents(word.toLowerCase());
-    return dictionary.some((entry) => this._removeAccents(entry.toLowerCase()) === wordWithoutAccents);
+  isWordValid(word) {
+    const wordWithoutAccents = this.removeAccents(word.toLowerCase());
+    return dictionary.some((entry) => this.removeAccents(entry.toLowerCase()) === wordWithoutAccents);
   }
 
   // Método para revelar as letras corretas e incorretas na interface do usuário.
-  _revealWord(guess) {
+  revealWord(guess) {
     const row = this.#currentRow;
     const animationDuration = 500;
 
@@ -229,34 +229,34 @@ class CosmicQuest {
 
     setTimeout(() => {
       if (isWinner) {
-        this._showAlert("Parabéns! Você desvendou o mistério cósmico!", "green", true);
+        this.showAlert("Parabéns! Você desvendou o mistério cósmico!", "green", true);
       } else if (isGameOver) {
         const gameOverMessage = `Infelizmente, a galáxia está perdida. A palavra era <strong>${this.#secretWord.toUpperCase()}</strong>. Melhor sorte na próxima missão!`;
-        this._showAlert(gameOverMessage, "red", true);
+        this.showAlert(gameOverMessage, "red", true);
       }
     }, 3 * animationDuration);
   }
 
   // Método para verificar se a tecla pressionada é uma letra.
-  _isLetter(key) {
+  isLetter(key) {
     return key.length === 1 && key.match(/[a-z]/i);
   }
 
   // Método para adicionar uma letra à matriz this.#grid.
-  _addLetter(letter) {
+  addLetter(letter) {
     if (this.#currentCol === this.#numCols) return;
     this.#grid[this.#currentRow][this.#currentCol] = letter;
     this.#currentCol++;
   }
 
   // Método para remover a última letra adicionada à matriz this.#grid.
-  _removeLetter() {
+  removeLetter() {
     if (this.#currentCol === 0) return;
     this.#grid[this.#currentRow][this.#currentCol - 1] = "";
     this.#currentCol--;
   }
 
-  _showAlert(message, color, showCloseButton = false) {
+  showAlert(message, color, showCloseButton = false) {
     const alertContainer = document.getElementById("alert-container");
     if (!alertContainer) {
       console.error("Elemento HTML 'alert-container' não encontrado.");
@@ -267,7 +267,7 @@ class CosmicQuest {
     alertContainer.innerHTML = "";
 
     // Cria o elemento de alerta
-    const alertElement = this._createHTMLElement("div", [
+    const alertElement = this.createHTMLElement("div", [
       "flex",
       "items-center",
       "justify-center",
@@ -282,7 +282,7 @@ class CosmicQuest {
       `dark:border-${color}-800`,
     ]);
 
-    // Adiciona ícone ao alerta (você pode personalizar o ícone conforme necessário)
+    // Adiciona ícone ao alerta
     alertElement.innerHTML = `
       <svg class="flex-shrink-0 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
         <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
@@ -297,7 +297,7 @@ class CosmicQuest {
 
     // Adiciona botão de fechar se necessário
     if (showCloseButton) {
-      const closeButton = this._createHTMLElement("button", [
+      const closeButton = this.createHTMLElement("button", [
         "ms-auto",
         "-mx-1.5",
         "-my-1.5",
@@ -322,8 +322,8 @@ class CosmicQuest {
         </svg>
       `;
       closeButton.addEventListener("click", () => {
-        this._closeAlert();
-        this._resetGame();
+        this.closeAlert();
+        this.resetGame();
       });
 
       alertElement.appendChild(closeButton);
@@ -335,13 +335,13 @@ class CosmicQuest {
     // Se o alerta for amarelo, fecha após 3000ms (3 segundos)
     if (color === "yellow") {
       setTimeout(() => {
-        this._closeAlert();
+        this.closeAlert();
       }, 3000);
     }
   }
 
   // Método para fechar o alerta
-  _closeAlert() {
+  closeAlert() {
     const alertContainer = document.getElementById("alert-container");
     if (alertContainer) {
       // Oculta o alerta (adiciona a classe 'hidden')
@@ -349,10 +349,42 @@ class CosmicQuest {
     }
   }
 
-  _resetGame() {
-    window.location.reload();
+  resetGame() {
+    // Limpa a matriz #grid
+    this.#grid = this.initializeGrid();
+  
+    // Gera uma nova palavra secreta
+    this.#secretWord = this.getRandomWord();
+  
+    // Reinicia as variáveis de controle do jogo
+    this.#currentRow = 0;
+    this.#currentCol = 0;
+  
+    // Atualiza a interface do usuário
+    this.updateGrid();
+  
+    // Redefine o estilo das caixas na grade para o estado inicial
+    for (let row = 0; row < this.#numRows; row++) {
+      for (let col = 0; col < this.#numCols; col++) {
+        const box = document.getElementById(`box${row}${col}`);
+        if (box) {
+          box.textContent = "";
+          box.classList.remove("bg-[#3aa394]", "bg-[#d3ad69]", "bg-[#312a2c]", "text-white", "shake-animation", "flip-animation");
+        }
+      }
+    }
+  
+    // Redefine o estilo dos botões de letras para o estado inicial
+    const letterButtons = document.querySelectorAll(".letter-button");
+    letterButtons.forEach((button) => {
+      button.classList.remove("bg-[#3aa394]", "bg-[#d3ad69]", "bg-[#312a2c]", "text-white", "dark:text-white");
+      button.classList.add("bg-gray-100", "dark:bg-gray-600", "text-gray-800", "dark:text-gray-100");
+    });
+  
+    // Fecha o alerta, se estiver aberto
+    this.closeAlert();
   }
 }
 
 // Usage of the class
-const game = new CosmicQuest(6, 5);
+const game = new CosmicGame(6, 5);
