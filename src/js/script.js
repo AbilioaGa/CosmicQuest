@@ -109,7 +109,6 @@ class BaseCosmicGame {
   getRandomWord() {
     const palavrasKeys = Object.keys(this.palavras);
     const randomKey = palavrasKeys[Math.floor(Math.random() * palavrasKeys.length)];
-    console.log(`Palavra escolhida: ${randomKey}`);
     return randomKey;
   }
 
