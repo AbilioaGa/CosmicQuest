@@ -1129,7 +1129,6 @@ export const dictionary = [
   "japão",
   "tênis",
   "piano",
-  "robô",
   "barco",
   "casco",
   "dardo",

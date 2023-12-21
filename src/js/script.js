@@ -1,49 +1,28 @@
-import { dictionary } from "./dicio.js";
+import { palavras } from "./palavras.js";
 
-class CosmicGame {
+class BaseCosmicGame {
   #numRows;
   #numCols;
+  #domGrid;
   #secretWord;
-  #grid;
-  #currentRow;
-  #currentCol;
-  #gridContainer;
-  #gridElement;
-  #timeRemaining;
+  #currentRow = 0;
+  #currentCol = 0;
+  #stateGrid;
 
   constructor(numRows, numCols) {
     this.#numRows = numRows;
     this.#numCols = numCols;
-    this.#secretWord = this.getRandomWord();
-    this.#grid = this.initializeGrid();
-    this.#currentRow = 0;
-    this.#currentCol = 0;
-    this.showGridBox();
-    this.handleInputEvent = this.handleInputEvent.bind(this);
-    this.registerInputEvents();
+    this.palavras = palavras;
   }
 
-  getRandomWord() {
-    if (dictionary.length === 0) {
-      console.error("Dicionário está vazio. Adicione palavras ao dicionário.");
-      return "";
-    }
-    return dictionary[Math.floor(Math.random() * dictionary.length)];
-  }
-
-  getSecretWord() {
-    return this.#secretWord;
-  }
-
-  initializeGrid() {
-    return Array.from({ length: this.#numRows }, () => Array(this.#numCols).fill(""));
-  }
-
-  createHTMLElement(tag, classNames = [], content = "", children = []) {
+  createHTMLElement(tag, classNames = [], content = "", children = [], src = "") {
     const element = document.createElement(tag);
     element.className = classNames.join(" ");
-    element.textContent = content;
-
+    if (tag.toLowerCase() === "img" && src) {
+      element.src = src;
+    } else {
+      element.textContent = content;
+    }
     for (const child of children) {
       if (typeof child === "string") {
         element.appendChild(document.createTextNode(child));
@@ -51,11 +30,10 @@ class CosmicGame {
         element.appendChild(child);
       }
     }
-
     return element;
   }
 
-  drawBox(row, col, letter = "") {
+  drawBox(container, row, col, letter = "") {
     const box = this.createHTMLElement("div", [
       "w-14",
       "h-14",
@@ -63,6 +41,7 @@ class CosmicGame {
       "rounded",
       "rounded-10",
       "border-zinc-900",
+      "text-gray-800",
       "dark:text-white",
       "uppercase",
       "grid",
@@ -71,55 +50,71 @@ class CosmicGame {
       "cursor-pointer",
       "transition-transform",
     ]);
-
-    box.textContent = letter;
-
     box.id = `box${row}${col}`;
-
-    this.#gridElement.appendChild(box);
+    box.textContent = letter;
+    container.appendChild(box);
+    return box;
   }
 
-  drawGrid() {
-    this.#gridElement = this.createHTMLElement("div", [
+  drawGrid(container) {
+    this.#domGrid = this.createHTMLElement("div", [
       "grid",
       `grid-cols-${this.#numCols}`,
       `grid-rows-${this.#numRows}`,
       "p-2",
       "gap-1",
     ]);
-
     for (let rows = 0; rows < this.#numRows; rows++) {
       for (let cols = 0; cols < this.#numCols; cols++) {
-        this.drawBox(rows, cols);
+        this.drawBox(this.#domGrid, rows, cols);
       }
     }
-
-    this.#gridContainer.appendChild(this.#gridElement);
+    container.appendChild(this.#domGrid);
   }
 
   showGridBox() {
-    const gameContainer = document.getElementById("game");
-
-    if (!gameContainer) {
+    const game = document.getElementById("game");
+    if (game) {
+      game.classList.add("flex", "justify-center", "my-2");
+      this.drawGrid(game);
+    } else {
       console.error("Elemento HTML 'game' não encontrado.");
-      return;
     }
-
-    this.#gridContainer = this.createHTMLElement("div", ["flex", "justify-center", "my-2"]);
-    gameContainer.appendChild(this.#gridContainer);
-
-    this.drawGrid();
   }
 
-  updateGridBox() {
-    for (let row = 0; row < this.#grid.length; row++) {
-      for (let col = 0; col < this.#grid[row].length; col++) {
-        const box = document.getElementById(`box${row}${col}`);
-        if (box) {
-          box.textContent = this.#grid[row][col];
+  clearGrid() {
+    const gameContainer = document.getElementById("game");
+    if (gameContainer) {
+      while (gameContainer.firstChild) {
+        gameContainer.removeChild(gameContainer.firstChild);
+      }
+    }
+  }
+
+  initializeStateGrid() {
+    return Array.from({ length: this.#numRows }, () => Array(this.#numCols).fill(""));
+  }
+
+  updateStateGridBox() {
+    if (Object.getPrototypeOf(this) !== BaseCosmicGame.prototype) {
+      for (let row = 0; row < this.#stateGrid.length; row++) {
+        for (let col = 0; col < this.#stateGrid[row].length; col++) {
+          const box = document.getElementById(`box${row}${col}`);
+          box.textContent = this.#stateGrid[row][col];
         }
       }
     }
+  }
+
+  getRandomWord() {
+    const palavrasKeys = Object.keys(this.palavras);
+    const randomKey = palavrasKeys[Math.floor(Math.random() * palavrasKeys.length)];
+    console.log(`Palavra escolhida: ${randomKey}`);
+    return randomKey;
+  }
+
+  getSecretWord() {
+    return this.#secretWord;
   }
 
   handleInputEvent = (event) => {
@@ -127,7 +122,6 @@ class CosmicGame {
       return;
     }
     let key, source;
-
     if (event.target && event.target.classList.contains("letter-button")) {
       source = "button";
       key = event.target.dataset.key;
@@ -135,7 +129,6 @@ class CosmicGame {
       source = "keyboard";
       key = event.key;
     }
-
     if (key === "Enter") {
       this.processEnterKey();
     } else if (key === "Backspace") {
@@ -143,16 +136,10 @@ class CosmicGame {
     } else if (this.isLetter(key)) {
       this.addLetter(key);
     }
-
-    this.updateGridBox();
+    this.updateStateGridBox();
   };
 
-  isGameCompleted() {
-    return this.#currentRow === this.#numRows;
-  }
-
   registerInputEvents() {
-    this.removeInputEvents();
     document.body.addEventListener("keydown", this.handleInputEvent);
     const letterButtons = document.querySelectorAll(".letter-button");
     letterButtons.forEach((button) => {
@@ -168,22 +155,28 @@ class CosmicGame {
     });
   }
 
-  getUserCurrentWord() {
-    return this.#grid[this.#currentRow].join("");
+  isLetter(key) {
+    return key.length === 1 && key.match(/[a-z]/i);
   }
 
-  processEnterKey() {
-    if (this.#currentCol === this.#numCols) {
-      const guessedWord = this.getUserCurrentWord().toLowerCase();
+  addLetter(letter) {
+    if (this.#currentCol === this.#numCols) return;
+    this.#stateGrid[this.#currentRow][this.#currentCol] = letter;
+    this.#currentCol++;
+  }
 
-      if (this.isWordValid(guessedWord)) {
-        this.revealWord(guessedWord);
-        this.#currentRow++;
-        this.#currentCol = 0;
-      } else {
-        this.handleInvalidWord();
-      }
-    }
+  removeLetter() {
+    if (this.#currentCol === 0) return;
+    this.#stateGrid[this.#currentRow][this.#currentCol - 1] = "";
+    this.#currentCol--;
+  }
+
+  isGameCompleted() {
+    return this.#currentRow === this.#numRows;
+  }
+
+  getUserCurrentWord() {
+    return this.#stateGrid[this.#currentRow].join("");
   }
 
   handleInvalidWord() {
@@ -199,75 +192,75 @@ class CosmicGame {
     this.showAlert("Minha busca por essa palavra está perdida nas vastidões do espaço.", "yellow");
   }
 
-  removeAccents(word) {
-    return word
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w\s]/gi, "");
+  isWordValid(word) {
+    const palavra = this.palavras[word];
+    return palavra !== undefined;
   }
 
-  isWordValid(word) {
-    const wordWithoutAccents = this.removeAccents(word.toLowerCase());
-    return dictionary.some((entry) => this.removeAccents(entry.toLowerCase()) === wordWithoutAccents);
+  processEnterKey() {
+    if (this.#currentCol === this.#numCols) {
+      const guessedWord = this.getUserCurrentWord();
+      if (this.isWordValid(guessedWord)) {
+        const palavra = this.palavras[guessedWord];
+        this.#stateGrid[this.#currentRow] = palavra !== null ? palavra.split("") : guessedWord.split("");
+        this.revealWord(guessedWord);
+        this.#currentRow++;
+        this.#currentCol = 0;
+      } else {
+        this.handleInvalidWord();
+      }
+    }
   }
 
   revealWord(guess) {
     const row = this.#currentRow;
     const animationDuration = 500;
-
-    for (let i = 0; i < this.#numCols; i++) {
-      const box = document.getElementById(`box${row}${i}`);
+    for (let col = 0; col < this.#numCols; col++) {
+      const box = document.getElementById(`box${row}${col}`);
       const letter = box.textContent;
-
-      const button = document.querySelector(`.letter-button[data-key="${letter.toLowerCase()}"]`);
-
+      const button = document.querySelector(`.letter-button[data-key="${letter}`);
       if (button) {
         button.classList.remove("bg-gray-100", "dark:bg-gray-600", "text-gray-800", "dark:text-gray-100");
-
         setTimeout(() => {
-          if (letter === this.#secretWord[i]) {
+          const isCorrect = letter.toLowerCase() === this.#secretWord[col].toLowerCase();
+          const isContained = this.#secretWord.toLowerCase().includes(letter.toLowerCase());
+          if (isCorrect) {
             box.classList.add("bg-[#3aa394]", "text-white");
             button.classList.add("bg-[#3aa394]", "text-white", "dark:text-white");
-          } else if (this.#secretWord.includes(letter)) {
+          } else if (isContained) {
             box.classList.add("bg-[#d3ad69]", "text-white");
             button.classList.add("bg-[#d3ad69]", "text-white", "dark:text-white");
           } else {
             box.classList.add("bg-[#312a2c]", "text-white");
             button.classList.add("bg-[#312a2c]", "text-white", "dark:text-white");
           }
-        }, ((i + 1) * animationDuration) / 2);
+        }, ((col + 1) * animationDuration) / 2);
       }
       box.classList.add("flip-animation");
-      box.style.animationDelay = `${(i * animationDuration) / 2}ms`;
+      box.style.animationDelay = `${(col * animationDuration) / 2}ms`;
     }
 
-    const isWinner = this.#secretWord.toLowerCase() === guess.toLowerCase();
+    const isWinner = this.#secretWord === guess;
     const isGameOver = this.#currentRow === this.#numRows - 1;
 
     setTimeout(() => {
       if (isWinner) {
         this.showAlert("Parabéns! Você desvendou o mistério cósmico!", "green", true);
+        this.pauseCountdownAndProgressBar();
       } else if (isGameOver) {
         const gameOverMessage = `Infelizmente, a galáxia está perdida. A palavra era <strong>${this.#secretWord.toUpperCase()}</strong>. Melhor sorte na próxima missão!`;
         this.showAlert(gameOverMessage, "red", true);
+        this.pauseCountdownAndProgressBar();
       }
     }, 3 * animationDuration);
   }
 
-  isLetter(key) {
-    return key.length === 1 && key.match(/[a-z]/i);
-  }
-
-  addLetter(letter) {
-    if (this.#currentCol === this.#numCols) return;
-    this.#grid[this.#currentRow][this.#currentCol] = letter;
-    this.#currentCol++;
-  }
-
-  removeLetter() {
-    if (this.#currentCol === 0) return;
-    this.#grid[this.#currentRow][this.#currentCol - 1] = "";
-    this.#currentCol--;
+  resetLetterButtons() {
+    const letterButtons = document.querySelectorAll(".letter-button");
+    letterButtons.forEach((button) => {
+      button.classList.remove("bg-[#3aa394]", "bg-[#d3ad69]", "bg-[#312a2c]", "text-white", "dark:text-white");
+      button.classList.add("bg-gray-100", "dark:bg-gray-600", "text-gray-800", "dark:text-gray-100");
+    });
   }
 
   showAlert(message, color, showCloseButton = false) {
@@ -277,10 +270,8 @@ class CosmicGame {
       return;
     }
 
-    // Remove alertas anteriores
     alertContainer.innerHTML = "";
 
-    // Cria o elemento de alerta
     const alertElement = this.createHTMLElement("div", [
       "flex",
       "items-center",
@@ -296,7 +287,6 @@ class CosmicGame {
       `dark:border-${color}-800`,
     ]);
 
-    // Adiciona ícone ao alerta
     alertElement.innerHTML = `
       <svg class="flex-shrink-0 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
         <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
@@ -306,7 +296,6 @@ class CosmicGame {
       </div>
     `;
 
-    // Adiciona o alerta ao contêiner
     alertContainer.appendChild(alertElement);
 
     if (showCloseButton) {
@@ -336,7 +325,7 @@ class CosmicGame {
       `;
       closeButton.addEventListener("click", () => {
         this.closeAlert();
-        this.resetGame();
+        this.resetAndStartGame();
       });
 
       alertElement.appendChild(closeButton);
@@ -359,254 +348,235 @@ class CosmicGame {
     }
   }
 
-  resetGridBox() {
-    const gameContainer = document.getElementById("game");
+  startGame() {
+    this.#currentCol = 0;
+    this.#currentRow = 0;
+    this.#stateGrid = this.initializeStateGrid();
+    this.showGridBox();
+    this.#secretWord = this.getRandomWord();
+    this.registerInputEvents();
+    if (this instanceof CosmicRace || this instanceof CosmicCountDown) {
+      this.setupCountdownAndProgressBarDOM();
+    }
+  }
 
-    if (gameContainer) {
-      while (gameContainer.firstChild) {
-        gameContainer.removeChild(gameContainer.firstChild);
+  resetGame() {
+    this.closeAlert();
+    this.clearGrid();
+    this.resetLetterButtons();
+    this.removeInputEvents();
+    if (this instanceof CosmicRace) {
+      this.resetCountdownAndProgressBar();
+      this.startCountdownAndProgressBar(3, 0);
+    }
+    if (this instanceof CosmicCountDown) {
+      this.resetCountdownAndProgressBar();
+      this.startCountdownAndProgressBar(10, 0);
+    }
+  }
+
+  resetAndStartGame() {
+    this.resetGame();
+    this.startGame();
+  }
+}
+
+class CosmicQuest extends BaseCosmicGame {
+  constructor(numRows, numCols) {
+    super(numRows, numCols);
+  }
+}
+
+class CosmicRace extends BaseCosmicGame {
+  constructor(numRows, numCols) {
+    super(numRows, numCols);
+    this.startCountdownAndProgressBar(5, 0);
+  }
+
+  setupCountdownAndProgressBarDOM() {
+    this.countdownContainer = document.getElementById("countdown-container");
+    this.progressBarContainer = document.getElementById("progressBar-container");
+
+    // Cria elementos dos minutos para o countdown
+    this.countdownDivMinutes = this.createHTMLElement("div");
+    this.minutesSpan = this.createHTMLElement("span", ["countdown", "font-mono", "text-4xl"]);
+    this.minutesSpanSpan = this.createHTMLElement("span");
+    this.countdownDivMinutes.appendChild(this.minutesSpan);
+    this.minutesSpan.appendChild(this.minutesSpanSpan);
+    this.countdownDivMinutes.appendChild(document.createTextNode(" min "));
+    this.countdownContainer.appendChild(this.countdownDivMinutes);
+
+    // Cria elementos dos segundos para o countdown
+    this.countdownDivSeconds = this.createHTMLElement("div");
+    this.secondsSpan = this.createHTMLElement("span", ["countdown", "font-mono", "text-4xl"]);
+    this.secondsSpanSpan = this.createHTMLElement("span");
+    this.countdownDivSeconds.appendChild(this.secondsSpan);
+    this.secondsSpan.appendChild(this.secondsSpanSpan);
+    this.countdownDivSeconds.appendChild(document.createTextNode(" sec "));
+    this.countdownContainer.appendChild(this.countdownDivSeconds);
+
+    // Cria elementos da barra de progresso
+    this.progressBar = this.createHTMLElement("div", [
+      "w-full",
+      "bg-gray-200",
+      "rounded-full",
+      "h-2.5",
+      "mb-4",
+      "dark:bg-gray-700",
+      "relative",
+    ]);
+    this.progressBarFill = this.createHTMLElement("div", ["bg-[#FFEB64]", "h-2.5", "rounded-full", "transition-all"]);
+    this.asteroidProgressBarFill = this.createHTMLElement(
+      "img",
+      [
+        "z-20",
+        "absolute",
+        "-translate-x-[110%]",
+        "-translate-y-[1.45rem]",
+        "left-0",
+        "-rotate-45",
+        "w-9",
+        "h-9",
+        "transition-all",
+      ],
+      "src",
+      [],
+      "./img/icon-asteroid-race.svg"
+    );
+    this.earthProgressBarFill = this.createHTMLElement(
+      "img",
+      ["z-10", "absolute", "-translate-y-3", "right-0", "w-3.5", "h-3.5"],
+      "src",
+      [],
+      "./img/icon-earth-default.svg"
+    );
+    this.progressBar.appendChild(this.progressBarFill);
+    this.progressBar.appendChild(this.asteroidProgressBarFill);
+    this.progressBar.appendChild(this.earthProgressBarFill);
+    this.progressBarContainer.appendChild(this.progressBar);
+  }
+
+  updateCountdownAndProgressBar() {
+    const totalTimeInSeconds = this.totalTime;
+    const elapsedSeconds = totalTimeInSeconds - this.remainingTime;
+
+    // Atualiza elementos do countdown
+    const minutes = Math.floor(this.remainingTime / 60);
+    const seconds = this.remainingTime % 60;
+    this.minutesSpanSpan.textContent = minutes;
+    this.secondsSpanSpan.textContent = seconds;
+    this.minutesSpanSpan.style.setProperty("--value", minutes);
+    this.secondsSpanSpan.style.setProperty("--value", seconds);
+
+    // Atualiza elementos da barra de progresso
+    const percentage = (elapsedSeconds / totalTimeInSeconds) * 100;
+    this.progressBarFill.style.width = `${percentage}%`;
+    this.asteroidProgressBarFill.style.left = `${percentage}%`;
+  }
+
+  startCountdownAndProgressBar(minutes, seconds) {
+    this.remainingTime = minutes * 60 + seconds;
+    this.totalTime = minutes * 60 + seconds;
+
+    this.interval = setInterval(() => {
+      if (this.remainingTime > 0) {
+        this.remainingTime--;
+        this.updateCountdownAndProgressBar();
+      } else {
+        this.pauseCountdownAndProgressBar();
+        const gameOverMessage = `O tempo se esgotou! A galáxia está perdida. A palavra era <strong>${this.getSecretWord().toUpperCase()}</strong>.`;
+        this.showAlert(gameOverMessage, "red", true);
       }
-    }
-  }
-
-  countdown(enableCountdown = false) {
-    const countdownContainer = document.getElementById("countdown-container");
-
-    // Verifica se o container foi encontrado
-    if (!countdownContainer) {
-      console.error("Elemento HTML 'countdown-container' não encontrado.");
-      return;
-    }
-
-    // Limpa o conteúdo anterior, se houver
-    countdownContainer.innerHTML = "";
-
-    if (enableCountdown) {
-      // Cria os elementos de countdown min e sec
-      const minutesElement = this.createHTMLElement("div");
-      minutesElement.innerHTML = `
-        <span class="min font-mono text-2xl">
-          <span></span>
-        </span>
-        min
-      `;
-      const secondsElement = this.createHTMLElement("div");
-      secondsElement.innerHTML = `
-        <span class="sec font-mono text-2xl">
-          <span></span>
-        </span>
-        sec
-      `;
-
-      countdownContainer.appendChild(minutesElement);
-      countdownContainer.appendChild(secondsElement);
-
-      // Inicializa o tempo restante
-      this.#timeRemaining = this.constructor.INITIAL_TIME_MILLISECONDS;
-
-      return;
-    }
-
-    // Se não for um novo countdown, definimos o tempo restante como 0
-    this.#timeRemaining = 0;
-  }
-
-  updateCountdown(timeRemaining) {
-    const minutes = Math.floor(timeRemaining / 60000);
-    const seconds = Math.floor((timeRemaining % 60000) / 1000);
-
-    const countdownElement = document.getElementById("countdown-container");
-    if (countdownElement) {
-      const minElement = countdownElement.querySelector(".min");
-      const secElement = countdownElement.querySelector(".sec");
-      if (minElement && secElement) {
-        minElement.textContent = `${minutes}`;
-        secElement.textContent = `${seconds}`;
+      if (this.isGameCompleted()) {
+        this.pauseCountdownAndProgressBar();
+        const gameOverMessage = `Infelizmente, a galáxia está perdida. A palavra era <strong>${this.getSecretWord().toUpperCase()}</strong>. Melhor sorte na próxima missão!`;
+        this.showAlert(gameOverMessage, "red", true);
       }
-    }
+    }, 1000);
+    return this.interval;
   }
 
-  progressBar(totalTime, timeRemaining, enableProgressBar = false) {
-    if (enableProgressBar) {
-      const progressBarContainer = document.getElementById("progressBar-container");
-
-      if (!progressBarContainer) {
-        console.error("Elemento HTML 'progressBar-container' não encontrado.");
-        return;
-      }
-
-      progressBarContainer.innerHTML = "";
-
-      const progressElement = this.createHTMLElement(
-        "div",
-        [
-          "bg-red-600",
-          "text-xs",
-          "font-medium",
-          "text-red-100",
-          "text-center",
-          "p-0.5",
-          "leading-none",
-          "rounded-full",
-        ],
-        "",
-        [this.createHTMLElement("span", ["text-xs"], "0%")]
-      );
-
-      progressElement.style.width = "0%";
-
-      progressBarContainer.appendChild(progressElement);
-
-      this.updateProgressBar(totalTime, timeRemaining);
-    }
-  }
-
-  updateProgressBar(totalTime, timeRemaining) {
-    const progressBarContainer = document.getElementById("progressBar-container");
-
-    if (!progressBarContainer) {
-      console.error("Elemento HTML 'progressBar-container' não encontrado.");
-      return;
-    }
-
-    const progressElement = progressBarContainer.firstChild;
-
-    if (!progressElement) {
-      console.error("Elemento HTML de progresso não encontrado.");
-      return;
-    }
-
-    const percentage = ((totalTime - timeRemaining) / totalTime) * 100;
-
-    progressElement.style.width = `${percentage}%`;
-
-    // O elemento `span` está dentro do elemento de progresso, então encontramos ele dentro do progressElement
-    const spanElement = progressElement.querySelector("span");
-
-    if (spanElement) {
-      spanElement.textContent = `${Math.round(percentage)}%`;
+  pauseCountdownAndProgressBar() {
+    if (this.interval) {
+      clearInterval(this.interval);
     }
   }
 
   resetCountdownAndProgressBar() {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     const countdownContainer = document.getElementById("countdown-container");
     const progressBarContainer = document.getElementById("progressBar-container");
 
     if (countdownContainer) {
-      countdownContainer.innerHTML = "";
+      while (countdownContainer.firstChild) {
+        countdownContainer.removeChild(countdownContainer.firstChild);
+      }
     }
     if (progressBarContainer) {
-      progressBarContainer.innerHTML = "";
-    }
-
-    // Reinicia o tempo restante para zero
-    this.#timeRemaining = 0;
-  }
-
-  resetGame() {
-    this.resetGridBox();
-    this.#secretWord = this.getRandomWord();
-    this.#grid = this.initializeGrid();
-    this.#currentRow = 0;
-    this.#currentCol = 0;
-    this.showGridBox();
-    this.handleInputEvent = this.handleInputEvent.bind(this);
-    this.registerInputEvents();
-    this.removeInputEvents();
-    this.closeAlert();
-    this.resetCountdownAndProgressBar();
-    const letterButtons = document.querySelectorAll(".letter-button");
-    letterButtons.forEach((button) => {
-      button.classList.remove("bg-[#3aa394]", "bg-[#d3ad69]", "bg-[#312a2c]", "text-white", "dark:text-white");
-      button.classList.add("bg-gray-100", "dark:bg-gray-600", "text-gray-800", "dark:text-gray-100");
-    });
-  }
-}
-
-class CosmicQuest extends CosmicGame {
-  constructor(numRows, numCols, enableCountdown = false, enableProgressBar = false) {
-    super(numRows, numCols, enableCountdown, enableProgressBar);
-    this.resetCosmicQuest();
-  }
-
-  resetCosmicQuest() {
-    super.resetGame();
-  }
-}
-
-class CosmicRace extends CosmicGame {
-  static INITIAL_TIME_MILLISECONDS = 3 * 60 * 1000; // 3 minutos em milissegundos
-
-  #timeRemaining;
-
-  constructor(numRows, numCols, enableCountdown = true, enableProgressBar = true) {
-    super(numRows, numCols, enableCountdown, enableProgressBar);
-    this.resetCosmicRace();
-    this.#timeRemaining = CosmicRace.INITIAL_TIME_MILLISECONDS;
-    this.startTimer(enableCountdown, enableProgressBar);
-  }
-
-  startTimer(enableCountdown, enableProgressBar) {
-    if (enableCountdown) {
-      super.countdown(enableCountdown);
-    }
-    if (enableProgressBar) {
-      super.progressBar(CosmicRace.INITIAL_TIME_MILLISECONDS, this.#timeRemaining, enableProgressBar);
-    }
-
-    const updateTimer = () => {
-      const timeRemaining = (this.#timeRemaining -= 1000);
-
-      super.updateCountdown(timeRemaining);
-      super.updateProgressBar(CosmicRace.INITIAL_TIME_MILLISECONDS, timeRemaining);
-
-      if (timeRemaining <= 0) {
-        const gameOverMessage = `O tempo se esgotou! A galáxia está perdida. A palavra era <strong>${this.getSecretWord().toUpperCase()}</strong>.`;
-        this.showAlert(gameOverMessage, "red", true);
-      } else {
-        setTimeout(updateTimer, 1000);
+      while (progressBarContainer.firstChild) {
+        progressBarContainer.removeChild(progressBarContainer.firstChild);
       }
-    };
-
-    updateTimer();
-  }
-
-  resetCosmicRace() {
-    super.resetGame();
-    this.#timeRemaining = CosmicRace.INITIAL_TIME_MILLISECONDS;
-    this.startTimer(true, true);
+    }
   }
 }
 
-class CosmicCountDown extends CosmicGame {
-  constructor(numRows, numCols, enableCountdown = false, enableProgressBar = false) {
-    super(numRows, numCols, enableCountdown, enableProgressBar);
-    this.resetCosmicCountDown();
+class CosmicCountDown extends BaseCosmicGame {
+  constructor(numRows, numCols) {
+    super(numRows, numCols);
+    this.cosmicRaceInstance = new CosmicRace(numRows, numCols);
+    this.startCountdownAndProgressBar(3, 0);
   }
 
-  resetCosmicCountDown() {
-    super.resetGame();
+  setupCountdownAndProgressBarDOM() {
+    this.cosmicRaceInstance.setupCountdownAndProgressBarDOM();
+  }
+
+  updateCountdownAndProgressBar() {
+    this.cosmicRaceInstance.updateCountdownAndProgressBar();
+  }
+
+  startCountdownAndProgressBar(minutes, seconds) {
+    this.cosmicRaceInstance.startCountdownAndProgressBar(minutes, seconds);
+  }
+
+  pauseCountdownAndProgressBar() {
+    if (this.cosmicRaceInstance.interval) {
+      clearInterval(this.cosmicRaceInstance.interval);
+    }
+  }
+
+  resetCountdownAndProgressBar() {
+    this.cosmicRaceInstance.resetCountdownAndProgressBar();
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  let currentCosmicGameInstance = null;
+
+  const resetAndStartNewGame = (gameInstance) => {
+    if (currentCosmicGameInstance) {
+      currentCosmicGameInstance.resetGame();
+    }
+    currentCosmicGameInstance = gameInstance;
+    if (currentCosmicGameInstance) {
+      currentCosmicGameInstance.startGame();
+      updateTitle(currentCosmicGameInstance.constructor.name);
+      toggleButton();
+    }
+  };
+
   const initializeCosmicQuest = () => {
-    const cosmicQuest = new CosmicQuest(6, 5);
-    updateTitle("CosmicQuest");
-    toggleButton();
+    resetAndStartNewGame(new CosmicQuest(6, 5));
   };
 
   const initializeCosmicRace = () => {
-    const cosmicRace = new CosmicRace(6, 5);
-    updateTitle("CosmicRace");
-    toggleButton();
+    resetAndStartNewGame(new CosmicRace(7, 5));
   };
 
   const initializeCosmicCountDown = () => {
-    const cosmicCountDown = new CosmicCountDown(6, 5);
-    updateTitle("CosmicCountDown");
-
-    toggleButton();
+    resetAndStartNewGame(new CosmicCountDown(10, 5));
   };
 
   const cosmicQuest = document.getElementById("cosmicQuest");
@@ -628,7 +598,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeCosmicCountDown();
   });
 
-  // Função para acionar o botão de alternância
   const toggleButton = () => {
     const toggleButton = document.querySelector("[data-dropdown-toggle='dropdown-menu']");
     if (toggleButton) {
@@ -636,12 +605,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  initializeCosmicQuest(); // Inicializa o CosmicQuest por padrão ao carregar a página
+  function updateTitle(modeName) {
+    const titleSpan = document.getElementById("title");
+    if (titleSpan) {
+      titleSpan.textContent = modeName;
+    }
+  }
+  initializeCosmicQuest();
 });
 
-function updateTitle(modeName) {
-  const titleSpan = document.getElementById("title");
-  if (titleSpan) {
-    titleSpan.textContent = modeName;
-  }
-}
